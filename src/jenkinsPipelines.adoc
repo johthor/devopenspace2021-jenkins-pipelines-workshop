@@ -1,0 +1,133 @@
+= Pipelines mit Jenkins
+:icons: font
+:imagesdir: images
+:source-highlighter: highlightjs
+:source-language: groovy
+:highlightjs-languages: groovy, yaml
+:revealjs_theme: moon
+Johannes Thorn
+
+Ich baue meine erste Pipeline mit Jenkins
+
+== Johannes Thorn
+
+* Softwareentwickler
+* Toolsmith
+* Problemlöser
+
+*Kontakt und Fragen*
+
+* @HerrStachel
+* Johannes.Thorn@ecube.de
+
+=== eCube GmbH
+
+ca. 15 Mitarbeitende in Leipzig
+und 21 in München
+
+* Produktdatenmanagement
+** Chioro als Produkt
+** und Strategieberatung
+* Softwareentwicklung
+** Beratung
+** und Umsetzung
+
+== Grundlagen 
+
+image::Jenkins_logo_with_title.svg[Jenkins]
+
+Was ist Jenkins?
+Wie funktioniert Jenkins?
+Wie hat man das früher gemacht?
+
+== Jenkins
+Build great things at any scale
+
+> The leading open source automation server, Jenkins provides hundreds of plugins to support building, deploying and automating any project.
+
+=== Continuous Integration and Continuous Delivery
+
+As an extensible automation server, Jenkins can be used as a simple CI server or turned into the continuous delivery hub for any project.
+
+=== Plugins
+
+With hundreds of plugins in the Update Center, Jenkins integrates with practically every tool in the continuous integration and continuous delivery toolchain.
+
+=== Extensible
+
+Jenkins can be extended via its plugin architecture, providing nearly infinite possibilities for what Jenkins can do.
+
+=== Distributed
+
+Jenkins can easily distribute work across multiple machines, helping drive builds, tests and deployments across multiple platforms faster.
+
+== Pipelines
+
+== `agent`
+
+== stages
+
+== steps
+
+
+== Anhang
+
+Hier beginnt der Anhang, den schauen wir uns nur an, wenn uns langweilig ist :D
+
+== Jenkins via Docker 
+
+Deploye einen Jenkins Build-Server via Docker
+
+----
+docker run -p 8080:8080 -p 50000:50000 \
+  -v jenkins_home:/var/jenkins_home \
+  jenkins/jenkins:lts-jdk11
+----
+
+Die Weboberfläche ist jetzt unter http://localhost:8080 erreichbar
+
+Details siehe https://github.com/jenkinsci/docker/
+
+== Slide Two
+
+A Great Story
+
+ifdef::backend-revealjs[=== !]
+
+with a good ending
+
+WARNING: hello
+
+INFO: good gid
+
+[.notes]
+--
+* tell anecdote
+* make a point
+* make another point
+--
+
+== Pipeline Code
+
+[source]
+----
+def foo = "Hello world"
+
+pipeline Hallo {
+  agent {
+    label "venlo"
+  }
+  
+  triggers {
+    pollSCM ""
+    if (foo) {
+      echo "do something"
+    }
+  }
+  
+  options {
+    timestamps()
+    ansiColor("xterm")
+  }
+}
+----
