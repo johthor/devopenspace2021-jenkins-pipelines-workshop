@@ -1,4 +1,4 @@
-.PHONY: help
+.PHONY: help clean copyImages slides script loadLibs
 
 CONTENT_FILE=src/jenkinsPipelines.adoc
 ASCIIDOCTOR_OPTIONS=-D build -T templates/
@@ -19,10 +19,14 @@ all: clean slides script  ## Clean, Build slides and script
 clean: ## Clean current slides and all
 	rm -rf build
 
-slides: ## Build the slides for this presentation
+copyImages:
+	mkdir -p build/images
+	cp src/images/* build/images
+
+slides: copyImages ## Build the slides for this presentation
 	bundle exec asciidoctor-revealjs $(ASCIIDOCTOR_OPTIONS) $(ASCIIDOCTOR_REVEALJS_OPTIONS) -o jenkinsPipelines-slides.html $(CONTENT_FILE)
 
-script: ## Build the script for this presentation
+script: copyImages ## Build the script for this presentation
 	bundle exec asciidoctor $(ASCIIDOCTOR_OPTIONS) -o jenkinsPipelines-script.html $(CONTENT_FILE)
 
 loadLibs: ## Load external libs for proper function

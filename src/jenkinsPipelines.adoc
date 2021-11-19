@@ -1,6 +1,7 @@
 = Pipelines mit Jenkins
 :icons: font
 :imagesdir: images
+:hide-uri-scheme:
 :source-highlighter: highlightjs
 :source-language: groovy
 :highlightjs-languages: groovy, yaml
@@ -8,6 +9,7 @@
 Johannes Thorn
 
 Ich baue meine erste Pipeline mit Jenkins
+
 
 == Johannes Thorn
 
@@ -17,58 +19,144 @@ Ich baue meine erste Pipeline mit Jenkins
 
 *Kontakt und Fragen*
 
-* @HerrStachel
-* Johannes.Thorn@ecube.de
+* https://twitter.com/HerrStachel[@HerrStachel] auf Twitter
+* Johannes.Thorn@ecube.de per E-Mail
 
 === eCube GmbH
 
 ca. 15 Mitarbeitende in Leipzig
-und 21 in München
+und ca. 20 in München
 
 * Produktdatenmanagement
-** Chioro als Produkt
-** und Strategieberatung
+** Chioro ein Produkt zum Produktdatenmanagement
+** Strategieberatung
 * Softwareentwicklung
 ** Beratung
-** und Umsetzung
+** Umsetzung
 
-== Grundlagen 
+== Jenkins Grundlagen 
 
-image::Jenkins_logo_with_title.svg[Jenkins]
+image::Jenkins_logo_with_title.svg[Jenkins,50%]
 
-Was ist Jenkins?
-Wie funktioniert Jenkins?
-Wie hat man das früher gemacht?
-
-== Jenkins
+[.lead]
 Build great things at any scale
 
 > The leading open source automation server, Jenkins provides hundreds of plugins to support building, deploying and automating any project.
 
-=== Continuous Integration and Continuous Delivery
+=== Historie
 
-As an extensible automation server, Jenkins can be used as a simple CI server or turned into the continuous delivery hub for any project.
+* Jenkins ist 2011 per Fork aus dem Projekt Hudson hervorgegangen.
+* Einige Zeit wurden Hudson und Jenkins parallel weiterentwickelt.
+* 2016 wurde die Weiterentwicklung von Hudson zugunsten von Jenkins eingestellt.
+* Die Software steht unter der MIT-Lizenz.
 
-=== Plugins
+=== Von Continuous Build bis Continuous Deployment
 
-With hundreds of plugins in the Update Center, Jenkins integrates with practically every tool in the continuous integration and continuous delivery toolchain.
+* Unterstützt nahezu beliebige Integrationsszenarien
+** Continous Build/Test
+** Continous Integration
+** Continous Delivery
+** Continous Deployment
+** usw.
+* Erweiterbarer Automatisierungsserver
+* Die Grenze ist die eigene Vorstellungskraft ;)
 
-=== Extensible
+=== Jenkins Plugins
 
-Jenkins can be extended via its plugin architecture, providing nearly infinite possibilities for what Jenkins can do.
+* Eine große Menge von vorgefertigten Plugins erleichtern die Arbeit mit verschiedenen Werkzeugen.
+* Einige werden wir auch noch näher kennen lernen.
+* Durch weitere Plugins kann Jenkins nahezu beliebig erweitert werden.
 
-=== Distributed
+=== Verteilung und Orchestrierung von Aufgaben
 
-Jenkins can easily distribute work across multiple machines, helping drive builds, tests and deployments across multiple platforms faster.
+* Jenkins ist grundsätzlich auf die verteilte Arbeit ausgelegt.
+* Die Verteilung von Aufgaben über Plattformgrenzen hinweg gehört zu den Basisfeatures.
+* Jenkins kann als Zentrales Verwaltungwerkzeug für automatisierte Aufträge fungieren.
+
+== Funktionsweise von Jenkins
+
+Eine Jenkins-Buildumgebung setzt sich typischerweise zusammen aus einem zentralen Jenkins Server und mehreren Jenkins-Buildagents.
+
+=== Main Server
+
+=== Buildagents
+
+* Bekommen Aufträge vom Jenkins 
+
+== Vorläufiger Inhalt
+
+[.notes]
+--
+* Wie funktioniert Jenkins?
+* Wie hat man das früher gemacht?
+--
 
 == Pipelines
 
-== `agent`
+Werden typischerweise in einer Datei `Jenkinsfile` im Repository-Root gepflegt.
 
-== stages
+[source%linenums]
+----
+pipeline {
+    agent any
+    stages {
+        stage('build') {
+            steps {
+                sh 'mvn test'
+            }
+        }
+    }
+}
+----
 
 == steps
 
+* Eine Pipeline setzt sich aus mehreren `steps` zusammen.
+* Jeder Step beschreibt ein Kommando, das ausgeführt wird.
+* Beispiele
+** `echo 'Building the project.'`
+** `sh 'mvn test'`
+
+=== Echo-Step
+
+* Die einfachste Form des Steps.
+* Der nachfolgende Inhalt wird im Build-Log ausgegeben.
+
+----
+echo 'Building the project.'
+----
+
+=== Shell-Befehle
+
+* Kaum komplizierter als ein `echo`.
+* Das nachfolgende Kommando wird innerhalb einer Shell ausgeführt.
+* Auf Unix-artigen wird `sh` verwendet, um einen Befehl  in einer Shell auszuführen.
+* Unter Windows wird `bat` verwendet.
+
+----
+sh 'mvn test'
+sh 'npm test'
+sh 'COMMAND'
+----
+
+== stage
+
+== stages
+
+== agent
+
+
+
+== Pipeline Jobs
+
+=== Multibranch Pipeline
+
+* Eine Multibranch Pipeline wird ausgehend von einem VCS-Repository definiert.
+* Jeder Branch in diesem Repository erzeugt einen eigenen Job innerhalb des übergeordneten Jobs.
+
+=== Pipeline
+
+=== Organization
 
 == Anhang
 
@@ -100,12 +188,6 @@ WARNING: hello
 
 INFO: good gid
 
-[.notes]
---
-* tell anecdote
-* make a point
-* make another point
---
 
 == Pipeline Code
 
@@ -128,6 +210,10 @@ pipeline Hallo {
   options {
     timestamps()
     ansiColor("xterm")
+  }
+  
+  steps {
+    echo "Hallo Welt"
   }
 }
 ----
