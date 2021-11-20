@@ -34,6 +34,7 @@ und ca. 20 in München
 ** Beratung
 ** Umsetzung
 
+
 == Jenkins Grundlagen 
 
 image::Jenkins_logo_with_title.svg[Jenkins,50%]
@@ -52,14 +53,23 @@ Build great things at any scale
 
 === Von Continuous Build bis Continuous Deployment
 
-* Unterstützt nahezu beliebige Integrationsszenarien
-** Continous Build/Test
-** Continous Integration
-** Continous Delivery
-** Continous Deployment
-** usw.
+.Unterstützt nahezu beliebige Integrationsszenarien
+* Continous Build/Test
+* Continous Integration
+* Continous Delivery
+* Continous Deployment
+* usw.
+
+ifdef::backend-revealjs[=== !]
+
 * Erweiterbarer Automatisierungsserver
 * Die Grenze ist die eigene Vorstellungskraft ;)
+
+=== Verteilung und Orchestrierung von Aufgaben
+
+* Jenkins ist grundsätzlich auf die verteilte Arbeit ausgelegt.
+* Die Verteilung von Aufgaben über Plattformgrenzen hinweg gehört zu den Basisfeatures.
+* Jenkins kann als Zentrales Verwaltungwerkzeug für automatisierte Aufgaben jeder Art fungieren.
 
 === Jenkins Plugins
 
@@ -67,30 +77,116 @@ Build great things at any scale
 * Einige werden wir auch noch näher kennen lernen.
 * Durch weitere Plugins kann Jenkins nahezu beliebig erweitert werden.
 
-=== Verteilung und Orchestrierung von Aufgaben
-
-* Jenkins ist grundsätzlich auf die verteilte Arbeit ausgelegt.
-* Die Verteilung von Aufgaben über Plattformgrenzen hinweg gehört zu den Basisfeatures.
-* Jenkins kann als Zentrales Verwaltungwerkzeug für automatisierte Aufträge fungieren.
 
 == Funktionsweise von Jenkins
 
-Eine Jenkins-Buildumgebung setzt sich typischerweise zusammen aus einem zentralen Jenkins Server und mehreren Jenkins-Buildagents.
+Eine Jenkins-Installation setzt sich typischerweise zusammen aus einem zentralen Jenkins Server und mehreren Buildagents zusammen.
 
-=== Main Server
+[plantuml, target=JenkinsInstallation, format=png]
+....
+[Jenkins Server] as main
+[Linux Buildagent 1] as agent1
+[Linux Buildagent 2] as agent2
+[Windows Buildagent] as agent3
+
+main --> agent1 : steuert
+main --> agent2 : steuert
+main --> agent3 : steuert
+....
+
+=== Buildserver
+
+* Verwaltung von Jobs
+** Bietet die Weboberfläche
+** Scheduling von Jobs
+** Orchestrierung von Jobs
+* Speichert die Build-Ergebnisse
 
 === Buildagents
 
-* Bekommen Aufträge vom Jenkins 
+. Bekommen Aufträge vom Jenkins Server zugewiesen
+. Bearbeiten die Aufträge
+. Liefern das Ergebnis zurück
 
-== Vorläufiger Inhalt
+=== Ausführen von Jobs
 
-[.notes]
---
-* Wie funktioniert Jenkins?
-* Wie hat man das früher gemacht?
---
+.Jobs können auf verschiedene Arten ausgeführt werden
+* durch einen Webhook der bei neuen Commits im Repository aufgerufen wird
+* Zeitbasiert, vergleichbar mit Cron-Jobs
+* durch Aufruf einer Job-spezifischen URL
+* nachdem andere Jobs ausgeführt wurden
+* explizit durch andere Jobs aufgerufen
 
+
+== Verschiedene Job-Typen
+
+Jenkins bietet standardmäßig verschiedene Typen von Jobs an,
+die wiederum in einer Ordnerstruktur organisiert werden können.
+
+=== Free Style
+
+[.lead]
+Der flexible ;)
+
+* Können frei in der Weboberfläche definiert werden
+* Ermöglichen es beliebige Build-Schritte nacheinander auszuführen
+** Maven-Build
+** Gradle-Build
+** Shell-Skripte
+
+=== Multikonfiguration
+
+Erweitern _Free Style Jobs_ um die Möglichkeit verschiedene Build-Konfigurationen als Konfigurationsmatrix zu beschreiben.
+
+[.stretch,cols="1h,2,2"]
+|===
+| |Java 11 | Java 17
+
+|Maven
+|mvn -P jdk11 test
+|mvn -P jdk17 test
+
+|Gradle
+|PROFILE="jdk11" gradle check
+|PROFILE="jdk17" gradle check
+|=== 
+
+=== External
+
+* Dient zum Monitoring externer Prozesse.
+* Durch Jenkins selbst wird keine Aktion ausgeführt.
+* Die Jobausführung wird von außerhalb z.B. gemeldet durch
++
+[source,shell]
+----
+JENKINS_HOME=http://my-jenkins/ \
+java -jar jenkins-external-tool-monitor.jar nightly-backup \
+./backup.sh --nightly /home
+----
+
+
+=== Pipeline
+
+* Führt die in einer Pipeline-Beschreibung definierten Schritte aus
+* Definition direkt im Jenkins
+* oder aus einem Jenkinsfile im Repository geladen
+
+*Mehr dazu gleich*
+
+=== Multibranch Pipeline
+
+* Fasst eine Menge von mehreren Pipeline Jobs zusammen.
+* Wird ausgehend von einem Code-Repository definiert.
+* Jeder Branch in diesem Repository erzeugt einen eigenen Pipeline Job innerhalb der Multibranch Pipeline.
+
+=== Organization
+
+* Fasst eine Menge von Multibranch Pipelines zusammen.
+* Wird ausgehend von einer Organisation in GitHub definiert.
+* Jedes Repository innerhalb der Organisation erzeugt eine eigene Multibranch Pipeline innerhalb des Organzisationsverzeichnisses.
+
+
+[state=topic]
 == Pipelines
 
 Werden typischerweise in einer Datei `Jenkinsfile` im Repository-Root gepflegt.
@@ -109,11 +205,12 @@ pipeline {
 }
 ----
 
+
 == steps
 
+* Steps bilden den kleinsten Baustein einer Pipeline und beschreiben was passieren soll.
 * Eine Pipeline setzt sich aus mehreren `steps` zusammen.
-* Jeder Step beschreibt ein Kommando, das ausgeführt wird.
-* Beispiele
+* Jeder Step beschreibt eine Aktion, die ausgeführt wird.
 ** `echo 'Building the project.'`
 ** `sh 'mvn test'`
 
@@ -126,11 +223,11 @@ pipeline {
 echo 'Building the project.'
 ----
 
-=== Shell-Befehle
+=== Shell-Skripte
 
 * Kaum komplizierter als ein `echo`.
-* Das nachfolgende Kommando wird innerhalb einer Shell ausgeführt.
-* Auf Unix-artigen wird `sh` verwendet, um einen Befehl  in einer Shell auszuführen.
+* Das nachfolgende Script wird innerhalb einer Shell ausgeführt.
+* Auf Unix-artigen wird `sh` verwendet, um einen Befehl in einer Shell auszuführen.
 * Unter Windows wird `bat` verwendet.
 
 ----
@@ -139,28 +236,118 @@ sh 'npm test'
 sh 'COMMAND'
 ----
 
-== stage
 
-== stages
-
-== agent
+== `stage` Block
 
 
+== `stages` Block
 
-== Pipeline Jobs
 
-=== Multibranch Pipeline
+== `agent` Block
 
-* Eine Multibranch Pipeline wird ausgehend von einem VCS-Repository definiert.
-* Jeder Branch in diesem Repository erzeugt einen eigenen Job innerhalb des übergeordneten Jobs.
+* Beschreibt wo die Pipeline oder Teile davon ausgeführt werden sollen.
+* Kann sich sowohl auf statisch registrierte Buildagents beziehen,
+* als auch auf dynamisch in Docker bereitgestellte.
 
-=== Pipeline
+=== Top-Level
 
-=== Organization
+Beschreibt die Ausführungsumgebung der gesamten restlichen Pipeline.
+
+[source]
+----
+pipeline {
+    agent {
+      label 'linux'
+    }
+    ...
+}
+----
+
+=== Stage-Level
+
+Beschreibt die Ausführungsumgebung dieser einen Stage.
+
+[source]
+----
+stage("Build") {
+    agent {
+        docker {
+            image 'maven:3.8.1-adoptopenjdk-11'
+            label 'my-defined-label'
+            args  '-v /tmp:/tmp'
+        }
+    }
+    ...
+}
+----
+
+=== Mögliche Werte
+
+`any`:: Ausführung auf einem bel. Buildagenten
+`none`:: Es wird kein Buildagent zugewiesen (Top-Level). Stattdessen muss jede Stage ihren eigenen Agenten definieren.
+
+ifdef::backend-revealjs[=== !]
+
+`label`:: Ausführung auf einem Buildagent, der entsprechend gelabelt ist
+`node`:: Ähnlich zu `label`, erlaubt aber weitere Optionen
+
+ifdef::backend-revealjs[=== !]
+
+`docker`:: Ausführung innerhalb des entsprechenden Containers, der dynamisch erzeugt wird
+`dockerfile`:: Ausführung innerhalb eines Containers, der aus einem Dockerfile gebaut wird
+`kubernetes`:: Ausführung innerhalb eines Pods, der in einem Kubernetes Cluster deployt wird
+
+
+== Andere Elemente
+
+Wiederhole den Step bis er erfolgreich war, aber maximal x-mal.
+
+[source]
+----
+retry(3) {
+    sh './flakey-deploy.sh'
+}
+----
+
+Warte eine Zeitspanne bis der Step erfolgreich war.
+
+[source]
+----
+timeout(time: 3, unit: 'MINUTES') {
+    sh './health-check.sh'
+}
+----
+
+
+== Nachgelagerte Aktionen
+
+[source]
+----
+post {
+    always {
+        echo 'This will always run'
+    }
+    success {
+        echo 'This will run only if successful'
+    }
+    failure {
+        echo 'This will run only if failed'
+    }
+    unstable {
+        echo 'This will run only if the run was marked as unstable'
+    }
+    changed {
+        echo 'This will run only if the state of the Pipeline has changed'
+        echo 'For example, if the Pipeline was previously failing but is now successful'
+    }
+}
+----
+
 
 == Anhang
 
 Hier beginnt der Anhang, den schauen wir uns nur an, wenn uns langweilig ist :D
+
 
 == Jenkins via Docker 
 
@@ -175,6 +362,7 @@ docker run -p 8080:8080 -p 50000:50000 \
 Die Weboberfläche ist jetzt unter http://localhost:8080 erreichbar
 
 Details siehe https://github.com/jenkinsci/docker/
+
 
 == Slide Two
 
