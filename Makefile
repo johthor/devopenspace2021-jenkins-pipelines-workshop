@@ -1,7 +1,7 @@
 .PHONY: help clean copyImages slides script loadLibs
 
 CONTENT_FILE=src/jenkinsPipelines.adoc
-ASCIIDOCTOR_OPTIONS=-D build -T templates/
+ASCIIDOCTOR_OPTIONS=-D build -T templates/ -r asciidoctor-kroki
 ASCIIDOCTOR_REVEALJS_OPTIONS=-b revealjs -a revealjsdir=../libs/reveal.js
 
 mkfile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
