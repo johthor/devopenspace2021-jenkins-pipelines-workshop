@@ -1,0 +1,63 @@
+
+== Anhang
+
+Hier beginnt der Anhang, den schauen wir uns nur an, wenn uns langweilig ist :D
+
+
+== Jenkins via Docker
+
+Deploye einen Jenkins Build-Server via Docker
+
+----
+docker run -p 8080:8080 -p 50000:50000 \
+  -v jenkins_home:/var/jenkins_home \
+  jenkins/jenkins:lts-jdk11
+----
+
+Die Weboberfläche ist jetzt unter http://localhost:8080 erreichbar
+
+Details siehe https://github.com/jenkinsci/docker/
+
+
+
+== Slide Two
+
+A Great Story
+
+ifdef::backend-revealjs[=== !]
+
+with a good ending
+
+WARNING: hello
+
+INFO: good gid
+
+
+== Pipeline Code
+
+[source]
+----
+def foo = "Hello world"
+
+pipeline Hallo {
+  agent {
+    label "venlo"
+  }
+
+  triggers {
+    pollSCM ""
+    if (foo) {
+      echo "do something"
+    }
+  }
+
+  options {
+    timestamps()
+    ansiColor("xterm")
+  }
+
+  steps {
+    echo "Hallo Welt"
+  }
+}
+----

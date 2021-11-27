@@ -1,0 +1,527 @@
+= Pipelines mit Jenkins
+:icons: font
+:imagesdir: images
+:hide-uri-scheme:
+:source-highlighter: highlightjs
+:source-language: groovy
+:highlightjs-languages: groovy, yaml
+:revealjs_theme: moon
+:revealjs_hash:
+:revealjs_width: 1440
+:revealjs_height: 1200
+
+Johannes Thorn
+
+Ich baue meine erste Pipeline mit Jenkins
+
+
+== Johannes Thorn
+
+* Softwareentwickler
+* Toolsmith
+* Problemlöser
+
+.*Kontakt und Fragen*
+* https://twitter.com/HerrStachel[@HerrStachel] auf Twitter
+* Johannes.Thorn@ecube.de per E-Mail
+
+=== eCube GmbH
+
+ca. 15 Mitarbeitende in Leipzig
+und ca. 20 in München
+
+* Softwareentwicklung
+** Beratung
+** Umsetzung
+* Produktdatenmanagement
+** Chioro ein Produkt zum Produktdatenmanagement
+** Strategieberatung
+
+
+== Jenkins Grundlagen 
+
+image::Jenkins_logo_with_title.svg[Jenkins,50%]
+
+[.lead]
+Build great things at any scale
+
+> The leading open source automation server, Jenkins provides hundreds of plugins to support building, deploying and automating any project.
+
+=== Historie
+
+* Jenkins ist 2011 per Fork aus dem Projekt Hudson hervorgegangen.
+* Einige Zeit wurden Hudson und Jenkins parallel weiterentwickelt.
+* 2016 wurde die Weiterentwicklung von Hudson zugunsten von Jenkins eingestellt.
+* Die Software steht unter der MIT-Lizenz.
+
+=== Von Continuous Build bis Continuous Deployment
+
+* Unterstützt nahezu beliebige Integrationsszenarien
+** Continous Build/Test
+** Continous Integration
+** Continous Delivery
+** Continous Deployment
+** usw.
+* Erweiterbarer Automatisierungsserver
+* Die Grenze ist die eigene Vorstellungskraft ;)
+
+=== Verteilung und Orchestrierung von Aufgaben
+
+* Jenkins ist grundsätzlich auf die verteilte Arbeit ausgelegt.
+* Die Verteilung von Aufgaben über Plattformgrenzen hinweg gehört zu den Basisfeatures.
+* Jenkins kann als Zentrales Verwaltungwerkzeug für automatisierte Aufgaben jeder Art fungieren.
+
+=== Jenkins Plugins
+
+* Eine große Menge von vorgefertigten Plugins erleichtern die Arbeit mit verschiedenen Werkzeugen.
+* Einige werden wir auch noch näher kennen lernen.
+* Durch weitere Plugins kann Jenkins nahezu beliebig erweitert werden.
+
+
+== Funktionsweise von Jenkins
+
+Eine Jenkins-Installation setzt sich typischerweise zusammen aus einem zentralen Jenkins Server und mehreren Buildagents zusammen.
+
+[plantuml, target=JenkinsInstallation, format=png]
+....
+[Jenkins Server] as main
+[Linux Buildagent 1] as agent1
+[Linux Buildagent 2] as agent2
+[Windows Buildagent] as agent3
+
+main --> agent1 : steuert
+main --> agent2 : steuert
+main --> agent3 : steuert
+....
+
+=== Buildserver
+
+* Verwaltung von Jobs
+** Bietet die Weboberfläche
+** Scheduling von Jobs
+** Orchestrierung von Jobs
+* Speichert die Build-Ergebnisse
+
+=== Buildagents
+
+. Bekommen Aufträge vom Jenkins Server zugewiesen
+. Bearbeiten die Aufträge
+. Liefern das Ergebnis zurück
+
+=== Ausführen von Jobs
+
+.Jobs können auf verschiedene Arten ausgeführt werden
+* durch einen Webhook der bei neuen Commits im Repository aufgerufen wird
+* Zeitbasiert, vergleichbar mit Cron-Jobs
+* durch Aufruf einer Job-spezifischen URL
+* nachdem andere Jobs ausgeführt wurden
+* explizit durch Nutzer oder andere Jobs aufgerufen
+
+
+== Verschiedene Job-Typen
+
+Jenkins bietet standardmäßig verschiedene Typen von Jobs an,
+die wiederum in einer Ordnerstruktur organisiert werden können.
+
+=== Free Style
+
+[.lead]
+Der flexible ;)
+
+* Können frei in der Weboberfläche definiert werden
+* Ermöglichen es beliebige Build-Schritte nacheinander auszuführen
+** Maven-Build
+** Gradle-Build
+** Shell-Skripte
+
+=== Multikonfiguration
+
+Erweitern _Free Style Jobs_ um die Möglichkeit verschiedene Build-Konfigurationen als Konfigurationsmatrix zu beschreiben.
+
+[.stretch,cols="1h,2,2"]
+|===
+|  |Java 11 | Java 17
+
+|Maven
+|mvn -P jdk11 test
+|mvn -P jdk17 test
+
+|Gradle
+|PROFILE="jdk11" gradle check
+|PROFILE="jdk17" gradle check
+
+|=== 
+
+=== External
+
+* Dient zum Monitoring externer Prozesse.
+* Durch Jenkins selbst wird keine Aktion ausgeführt.
+* Die Jobausführung wird von außerhalb z.B. gemeldet durch
++
+[source,shell]
+----
+JENKINS_HOME=http://my-jenkins/ \
+java -jar jenkins-external-tool-monitor.jar nightly-backup \
+./backup.sh --nightly /home
+----
+
+=== Pipeline
+
+* Führt die in einer Pipeline-Beschreibung definierten Schritte aus
+* Definition direkt im Jenkins
+* oder aus einem Jenkinsfile im Repository geladen
+
+*Mehr dazu gleich*
+
+=== Multibranch Pipeline
+
+* Fasst eine Menge von mehreren Pipeline Jobs zusammen.
+* Wird ausgehend von einem Code-Repository definiert.
+* Jeder Branch in diesem Repository erzeugt einen eigenen Pipeline Job innerhalb der Multibranch Pipeline.
+
+=== Organization
+
+* Fasst eine Menge von Multibranch Pipelines zusammen.
+* Wird ausgehend von einer Organisation in GitHub definiert.
+* Jedes Repository innerhalb der Organisation erzeugt eine eigene Multibranch Pipeline innerhalb des Organzisationsverzeichnisses.
+
+
+[state=topic]
+== Pipelines
+
+Werden typischerweise in einer Datei `Jenkinsfile` im Repository-Root gepflegt.
+
+[source%linenums]
+----
+pipeline {
+    agent any
+    stages {
+        stage('Test') {
+            steps {
+                sh 'mvn test'
+            }
+        }
+    }
+}
+----
+
+=== `stages` Block
+
+Kapselt mehrere `stage` Blöcke, die hintereinander ausgeführt werden.
+
+=== `stage` Block
+
+Kapselt die einzelnen Aktionen in einem Block `steps` und beschreibt weitere Meta-Informationen.
+
+[source]
+----
+stage('Example') {
+    agent any
+    steps {
+        echo 'Hello World'
+    }
+    post {
+        always {
+            echo 'Post message'
+        }
+    }
+}
+----
+
+
+== `steps`
+
+* Steps bilden den kleinsten Baustein einer Pipeline und beschreiben was passieren soll.
+* Eine Pipeline setzt sich aus mehreren `steps` zusammen.
+* Jeder Step beschreibt eine Aktion, die ausgeführt wird.
+** `echo 'Building the project.'`
+** `sh 'mvn test'`
+
+=== Echo-Step
+
+* Die einfachste Form des Steps.
+* Der nachfolgende Inhalt wird im Build-Log ausgegeben.
+
+----
+echo 'Building the project.'
+----
+
+=== Shell-Skripte
+
+* Kaum komplizierter als ein `echo`.
+* Das nachfolgende Script wird innerhalb einer Shell ausgeführt.
+* Auf Unix-artigen wird `sh` verwendet, um einen Befehl in einer Shell auszuführen.
+* Unter Windows wird `bat` verwendet.
+
+----
+sh 'mvn test'
+sh 'npm test'
+sh 'COMMAND'
+----
+
+=== Andere Steps
+
+Wiederhole den Step bis er erfolgreich war, aber maximal x-mal.
+
+[source]
+----
+retry(3) {
+    sh './flakey-deploy.sh'
+}
+----
+
+Warte eine Zeitspanne bis der Step erfolgreich war.
+
+[source]
+----
+timeout(time: 3, unit: 'MINUTES') {
+    sh './health-check.sh'
+}
+----
+
+=== Weitere Steps aus Plugins
+
+//TODO withMaven ....
+
+
+== `agent` Block
+
+* Beschreibt wo die Pipeline oder Teile davon ausgeführt werden sollen.
+* Kann sich sowohl auf statisch registrierte Buildagents beziehen,
+* als auch auf dynamisch in Docker bereitgestellte.
+
+=== Top-Level
+
+Beschreibt die Ausführungsumgebung der gesamten restlichen Pipeline.
+
+[source]
+----
+pipeline {
+    agent {
+      label 'linux'
+    }
+    ...
+}
+----
+
+=== Stage-Level
+
+Beschreibt die Ausführungsumgebung dieser einen Stage.
+
+[source]
+----
+stage("Build") {
+    agent {
+        docker {
+            image 'maven:3.8.1-adoptopenjdk-11'
+            label 'my-defined-label'
+            args  '-v /tmp:/tmp'
+        }
+    }
+    ...
+}
+----
+
+=== Mögliche Werte
+
+`any`:: Ausführung auf einem bel. Buildagenten
+`none`:: Es wird kein Buildagent zugewiesen (Top-Level). Stattdessen muss jede Stage ihren eigenen Agenten definieren.
+
+ifdef::backend-revealjs[=== !]
+
+`label`:: Ausführung auf einem Buildagent, der entsprechend gelabelt ist
+`node`:: Ähnlich zu `label`, erlaubt aber weitere Optionen
+
+ifdef::backend-revealjs[=== !]
+
+`docker`:: Ausführung innerhalb des entsprechenden Containers, der dynamisch erzeugt wird
+`dockerfile`:: Ausführung innerhalb eines Containers, der aus einem Dockerfile gebaut wird
+`kubernetes`:: Ausführung innerhalb eines Pods, der in einem Kubernetes Cluster deployt wird
+
+
+== Nachgelagerte Aktionen
+
+* Definieren Aktionen, die nach Abschluss der Pipeline oder der Stage ausgeführt werden.
+* Welche Aktionen ausgeführt werden hängt, vom Ergebnis der Pipeline-Ausführung ab.
+
+=== Mögliche Ausführungsergebnisse
+
+`SUCCESS`:: Es sind keine Fehler aufgetreten.
+`UNSTABLE`:: Es sind keine fatalen Fehler aufgetreten.
+`FAILURE`:: Es ist ein fataler Fehler aufgetreten.
+`NOT_BUILT`:: Das Modul wurde nicht gebaut.
+`ABORTED`:: Die Ausführung wurde abbgebrochen.
+
+[.notes]
+--
+`UNSTABLE`:: Es könnten z.B. Test fehlgeschlagen sein.
+`NOT_BUILT`:: Bei Multistage-Builds, wenn eine vorhergehende Stage fehlgeschlagen ist.
+--
+
+=== `always` Aktionen
+
+Diese Aktionen werden immer als erstes ausgeführt.
+
+[source]
+----
+post {
+    always {
+        echo 'This will always run'
+    }
+}
+----
+
+=== `changed` Aktionen
+
+Diese Aktionen werden nur ausgeführt, wenn sich das Ausführungsergebnis vom letzten Ergebnis unterscheidet.
+
+*Zustandsübergang*: `SUCCESS -> FAILURE`, `FAILURE -> SUCCESS` usw.
+
+[source]
+----
+post {
+    changed {
+        echo 'The result has changed'
+    }
+}
+----
+
+=== `fixed` Aktionen
+
+Diese Aktionen werden nur ausgeführt, wenn das aktuelle Ausführungsergebnis erfolgreich ist und das vorherige nicht erfolgreich war.
+
+*Zustandsübergang*: `FAILURE -> SUCCESS` oder `UNSTABLE -> SUCCESS`
+
+[source]
+----
+post {
+    fixed {
+        echo 'The result was fixed'
+    }
+}
+----
+
+=== `regression` Aktionen
+
+Diese Aktionen werden nur ausgeführt, wenn das aktuelle Ausführungsergebnis erfolgreich ist und das vorherige nicht erfolgreich war.
+
+*Zustandsübergang*: `SUCCESS -> FAILURE` oder `SUCCESS -> UNSTABLE`
+
+[source]
+----
+post {
+    regression {
+        echo 'The result is FAILURE after being SUCCESS before'
+    }
+}
+----
+
+=== Weitere Aktionstypen
+
+* `aborted` Aktueller Status `ABORTED`
+* `failure` Aktueller Status `FAILURE`
+* `success` Aktueller Status `SUCCESS`
+* `unstable` Aktueller Status `UNSTABLE`
+* `unsuccessful` Aktueller Status ist nicht `SUCCESS`
+* `cleanup` Wird immer als allerletze Aktion ausgeführt
+
+
+== Ihr seid dran :)
+
+http://34.65.117.123/[Jenkins Instanz für den Workshop]
+
+. Legt ein eigenes Verzeichnis mit eurem Namen an: `Johannes_Thorn`
+. Legt darin einen neuen Freestyle Job an der die Welt grüßt.
+. Forked das https://github.com/johthor/devopenspace2021-jenkins-pipelines-companion[Projekt zum Workshop]
+** Es handelt sich um ein Standard-Mavenprojekt
+** Alternativ erweitert ihr ein eigenes Projekt um eine Jenkins-Pipeline
+. Fügt den Nutzer https://github.com/devopenspace-jenkins-workshop[devopenspace-jenkins-workshop] als Contributor hinzu
+. Legt einen neuen Pipeline-Job an, der sich aus eurem Projekt definiert: Branch-Name `pipelines01`
+
+
+== Umgebungsvariablen
+
+Können auch global oder per Stage gesetzt werden.
+
+[source]
+----
+pipeline {
+    agent any
+    environment {
+        DISABLE_AUTH = 'true'
+        DB_ENGINE    = 'sqlite'
+    }
+    ...
+}
+----
+
+== Testergebnisse und Artefakte
+
+* Jenkins unterstützt von Haus aus das Einlesen JUnit-XML-Reports.
+* Außerdem können bel. Build-Artefakte für spätere Nutzung gespeichert werden.
+* Der Workspace wird nach dem Build mit `deleteDir()` bereinigt
+
+[source]
+----
+post {
+    always {
+        junit 'target/surefire-reports/*.xml'
+        archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+    }
+    cleanup {
+        deleteDir()
+    }
+}
+----
+
+=== Statische Code-Analyse
+
+* Kontinuierliche Überwachung der Code-Qualität mit Tooling
+** Checkstyle
+** SpotBugs
+** PMD
+** u.v.a.m
+* Aufbereitung des aktuellen Zustands und Visualisierung von Trends durch das Plugin _Warnings NG_
+
+[source]
+----
+post {
+    always {
+        ...
+        recordIssues(tools: [checkStyle(), pmdParser(), spotBugs(useRankAsPriority: true)])
+    }
+}
+----
+
+=== Checkstyle Warnings
+
+image:checkStyle_warnings.png[]
+
+ifdef::backend-revealjs[=== !]
+
+image:pipeline-overview.png[]]
+
+== Visualisierung von Pipelines
+
+* Andere haben hübsche Pipeline-Grafen
+* Jenkins hat das auch dank des _Blue Ocean_ Plugins
+* Allerdings unterscheidet sich der Funktionsumfang zur klassischen Ansicht
+
+image:blue_ocean_pipeline.png[]
+
+== Benachrichtigungen
+
+.Jenkins bring von Haus aus einige Möglichkeiten mit Benachrichtigungen zu verschicken
+* `mailt to` E-Mail
+* `slackSend` Slack
+
+[source]
+----
+post {
+    failure {
+        mail to: 'team@example.com',
+             subject: "Failed Pipeline: ${currentBuild.fullDisplayName}",
+             body: "Something is wrong with ${env.BUILD_URL}"
+    }
+}
+----

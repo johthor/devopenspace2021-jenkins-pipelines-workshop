@@ -1,0 +1,224 @@
+= Jenkins Pipelines II
+:icons: font
+:imagesdir: images
+:hide-uri-scheme:
+:source-highlighter: highlightjs
+:source-language: groovy
+:highlightjs-languages: groovy, yaml
+:revealjs_theme: moon
+:revealjs_hash:
+:revealjs_width: 1440
+:revealjs_height: 1200
+Johannes Thorn
+
+Wie geht es weiter?
+
+== Deployment Pipelines
+
+* Ein Software-Build kann in mehrere Phasen unterteilt werden.
+** Build
+** Test
+** Deploy
+** usw.
+* Zur Übersicht wollen wir die Phasen auch in unserer Pipeline abbilden.
+
+=== Wir benötigen mehr Stages!
+
+ifdef::backend-revealjs[=== !]
+
+[source.stretch]
+----
+pipeline {
+    agent any
+    options {
+        skipStagesAfterUnstable()
+    }
+    stages {
+        stage('Build') {
+            steps {
+                echo 'Building'
+            }
+        }
+        stage('Test') {
+            steps {
+                echo 'Testing'
+            }
+        }
+        stage('Deploy') {
+            steps {
+                echo 'Deploying'
+            }
+        }
+    }
+}
+----
+
+=== Eine Stage pro Deployment-Umgebung
+
+* Häufig wollen wir verschiedene Deployment-Umgebungen unterscheiden
+** Development
+** Staging
+** [...]
+** Production
+* Dafür teilen wir *das Deployment* auf mehrere Stages auf
+
+ifdef::backend-revealjs[=== !]
+
+[source]
+----
+stage('Deploy - Staging') {
+    steps {
+        sh './deploy staging'
+        sh './run-smoke-tests'
+    }
+}
+stage('Deploy - Production') {
+    steps {
+        sh './deploy production'
+    }
+}
+----
+
+=== Continuous Delivery statt Continuous Deployment
+
+* Manchmal ist ein automatisches Deployment bis auf Produktion/Live gar nicht gewünscht.
+* Manuelle Freigaben zwischen den Stages sichern das Deployment ab
+
+ifdef::backend-revealjs[=== !]
+
+[source.stretch]
+----
+pipeline {
+    agent any
+    stages {
+        /* "Build" and "Test" stages omitted */
+        stage('Deploy - Staging') {
+            steps {
+                sh './deploy staging'
+                sh './run-smoke-tests'
+            }
+        }
+        stage('Sanity check') {
+            steps {
+                input "Does the staging environment look ok?"
+            }
+        }
+        stage('Deploy - Production') {
+            steps {
+                sh './deploy production'
+            }
+        }
+    }
+}
+----
+
+=== Milestones gegen Wartezeiten
+
+* Standardmäßig können Pipeline-Läufe nebenläufig abgearbeitet werden.
+* Das führt zu einem Problem, wenn ein älterer Lauf einen neueren Lauf überholt.
+* Milestones erzwingen eine bestimmte Ordnung beim Ablauf.
+* Dadurch kann ein älterer Build einen neueren nicht mehr überholen, da die Ausführung abgebrochen wird.
+
+ifdef::backend-revealjs[=== !]
+
+[source]
+----
+stage('Sanity check') {
+    steps {
+        input "Does the staging environment look ok?"
+        milestone label: "Sanity check"
+    }
+}
+----
+
+=== Ablauf der Milestone Steuerung
+
+[plantuml, target=AblaufMilestones, format=png]
+....
+hide footbox
+
+[-> Run1 ++ : Start work
+Run1 -> Run1 ++ : Deploy - Staging
+[<- Run1 -- : waiting for input
+deactivate Run1
+...
+
+[-> Run2 ++ : Start work
+Run2 -> Run2 ++ : Deploy - Staging
+[<- Run2 -- : waiting for input
+deactivate Run2
+...
+[-> Run2: Sanity check was successful
+
+== Milestone: Sanity check ==
+
+Run2 -> Run1 !!: abort
+
+activate Run2
+Run2 -> Run2 ++ : Deploy Stage
+deactivate Run2
+deactivate Run2
+....
+
+== Main Branch vs. Feature Branch?
+
+* Bisher wird für jeden Commit die vollständige Pipeline ausgeführt.
+* Bei einem Feature orientierten Branching-Modell ist das aber nicht gewünscht.
+* Die Lösung sind bedingt ausgeführte Stages
+
+=== Ausführungsbedingungen mit `when`
+
+Zusätzliche Direktive für den Stage-Block
+
+[source]
+----
+stage('Deploy - Production') {
+    when {
+        branch 'main'
+    }
+    steps {
+        sh './deploy production'
+    }
+}
+----
+
+=== Bedingungen
+
+Die entsprechende Stage wird nur ausgeführt,
+
+`when { branch 'master' }`:: wenn der Branch dem Pattern entspricht.
+`when { buildingTag() }`:: wenn gerade ein Tag gebaut wird.
+`when { tag "release-*" }`:: wenn ein Tag gebaut wird, der auf das Pattern matched.
+
+ifdef::backend-revealjs[=== !]
+
+`when { changelog '.*^\\[DEPEND\\] .+$' }`:: wenn der Regex auf den Logeintrag matched.
+`when { changeset "**/*.js" }`:: wenn eine der geänderten Dateien auf das Pattern matched.
+`when { changeRequest() }`:: wenn es sich um einen PR, MR, usw. handelt.
+
+ifdef::backend-revealjs[=== !]
+
+`when { environment name: 'DEPLOY_TO', value: 'production' }`:: wenn die Umgebungsvariable gleich dem angegebenen Wert ist.
+`when { equals expected: 2, actual: currentBuild.number }`:: wenn der erwartete Wert gleich dem angegebenen Wert ist.
+`when { expression { return params.DEBUG_BUILD } }`:: wenn der Groovy-Ausdruck zu wahr auswertet.
+
+=== Kombinierte Bedingungen
+
+* Bedingungen können auch kombiniert werden.
++
+----
+when {
+    branch 'main'
+    environment name: 'DEPLOY_TO', value: 'production'
+}
+----
+* Das entspricht einer UND-Verknüpfung aller Bedingungen.
+
+ifdef::backend-revealjs[=== !]
+
+Die Bedingungen können auch noch weiter verschachtelt werden.
+
+`allOf { ... }`:: UND-Verknüpfung der Bedingungen
+`anyOf { ... }`:: ODER-Verknüpfung der Bedingungen
+`not { ... }`:: Negation der nachfolgenden Bedingung
+

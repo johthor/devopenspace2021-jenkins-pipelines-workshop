@@ -1,7 +1,12 @@
 .PHONY: help clean copyImages slides script loadLibs
 
-CONTENT_FILE=src/jenkinsPipelines.adoc
-ASCIIDOCTOR_OPTIONS=-D build -T templates/ -r asciidoctor-kroki
+SCRIPT_FILE=src/jenkinsPipelines.adoc
+
+SRCS=$(wildcard src/*.adoc)
+SLIDES=$(patsubst src/%,build/%,$(SRCS:.adoc=.html))
+all: $(OBJS)
+
+ASCIIDOCTOR_OPTIONS=-T templates/ -r asciidoctor-kroki
 ASCIIDOCTOR_REVEALJS_OPTIONS=-b revealjs -a revealjsdir=../libs/reveal.js
 
 mkfile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
@@ -23,11 +28,13 @@ copyImages:
 	mkdir -p build/images
 	cp src/images/* build/images
 
-slides: copyImages ## Build the slides for this presentation
-	bundle exec asciidoctor-revealjs $(ASCIIDOCTOR_OPTIONS) $(ASCIIDOCTOR_REVEALJS_OPTIONS) -o jenkinsPipelines-slides.html $(CONTENT_FILE)
+build/%.html : src/%.adoc
+	bundle exec asciidoctor-revealjs $(ASCIIDOCTOR_OPTIONS) $(ASCIIDOCTOR_REVEALJS_OPTIONS) -o $@ $<
+
+slides: copyImages $(SLIDES) ## Build the slides for this presentation
 
 script: copyImages ## Build the script for this presentation
-	bundle exec asciidoctor $(ASCIIDOCTOR_OPTIONS) -o jenkinsPipelines-script.html $(CONTENT_FILE)
+	bundle exec asciidoctor $(ASCIIDOCTOR_OPTIONS) -o build/jenkinsPipelines-script.html $(SCRIPT_FILE)
 
 loadLibs: ## Load external libs for proper function
 	git clone -b 3.9.2 --depth 1 https://github.com/hakimel/reveal.js.git libs/
