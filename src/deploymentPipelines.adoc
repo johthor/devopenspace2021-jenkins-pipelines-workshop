@@ -22,7 +22,7 @@ Wie geht es weiter?
 ** usw.
 * Zur Übersicht wollen wir die Phasen auch in unserer Pipeline abbilden.
 
-=== Wir benötigen mehr Stages!
+=== Wir haben nicht genügend Stages, Mylord!
 
 ifdef::backend-revealjs[=== !]
 
@@ -68,13 +68,13 @@ ifdef::backend-revealjs[=== !]
 ----
 stage('Deploy - Staging') {
     steps {
-        sh './deploy staging'
+        sh './deploy.sh staging'
         sh './run-smoke-tests'
     }
 }
 stage('Deploy - Production') {
     steps {
-        sh './deploy production'
+        sh './deploy.sh production'
     }
 }
 ----
@@ -94,7 +94,7 @@ pipeline {
         /* "Build" and "Test" stages omitted */
         stage('Deploy - Staging') {
             steps {
-                sh './deploy staging'
+                sh './deploy.sh staging'
                 sh './run-smoke-tests'
             }
         }
@@ -105,7 +105,7 @@ pipeline {
         }
         stage('Deploy - Production') {
             steps {
-                sh './deploy production'
+                sh './deploy.sh production'
             }
         }
     }
@@ -115,9 +115,9 @@ pipeline {
 === Milestones gegen Wartezeiten
 
 * Standardmäßig können Pipeline-Läufe nebenläufig abgearbeitet werden.
-* Das führt zu einem Problem, wenn ein älterer Lauf einen neueren Lauf überholt.
+* Das führt zu einem Problem, wenn ein neuerer Lauf einen älteren Lauf überholt.
 * Milestones erzwingen eine bestimmte Ordnung beim Ablauf.
-* Dadurch kann ein älterer Build einen neueren nicht mehr überholen, da die Ausführung abgebrochen wird.
+* Dadurch werden ältere Builds abgebrochen, sobald sie überholt wurden.
 
 ifdef::backend-revealjs[=== !]
 
@@ -141,21 +141,26 @@ hide footbox
 Run1 -> Run1 ++ : Deploy - Staging
 [<- Run1 -- : waiting for input
 deactivate Run1
+
 ...
 
 [-> Run2 ++ : Start work
 Run2 -> Run2 ++ : Deploy - Staging
 [<- Run2 -- : waiting for input
 deactivate Run2
+
+== Milestone 1: Deployment ==
+
 ...
+
 [-> Run2: Sanity check was successful
 
-== Milestone: Sanity check ==
+== Milestone 2: Sanity check ==
 
 Run2 -> Run1 !!: abort
 
 activate Run2
-Run2 -> Run2 ++ : Deploy Stage
+Run2 -> Run2 ++ : Deploy - Production
 deactivate Run2
 deactivate Run2
 ....
@@ -177,7 +182,7 @@ stage('Deploy - Production') {
         branch 'main'
     }
     steps {
-        sh './deploy production'
+        sh './deploy.sh production'
     }
 }
 ----
@@ -186,7 +191,7 @@ stage('Deploy - Production') {
 
 Die entsprechende Stage wird nur ausgeführt,
 
-`when { branch 'master' }`:: wenn der Branch dem Pattern entspricht.
+`when { branch 'main' }`:: wenn der Branch dem Pattern entspricht.
 `when { buildingTag() }`:: wenn gerade ein Tag gebaut wird.
 `when { tag "release-*" }`:: wenn ein Tag gebaut wird, der auf das Pattern matched.
 
@@ -198,7 +203,7 @@ ifdef::backend-revealjs[=== !]
 
 ifdef::backend-revealjs[=== !]
 
-`when { environment name: 'DEPLOY_TO', value: 'production' }`:: wenn die Umgebungsvariable gleich dem angegebenen Wert ist.
+`when { environment name: 'DEPLOY_TO', value: 'prod' }`:: wenn die Umgebungsvariable gleich dem angegebenen Wert ist.
 `when { equals expected: 2, actual: currentBuild.number }`:: wenn der erwartete Wert gleich dem angegebenen Wert ist.
 `when { expression { return params.DEBUG_BUILD } }`:: wenn der Groovy-Ausdruck zu wahr auswertet.
 
@@ -222,3 +227,28 @@ Die Bedingungen können auch noch weiter verschachtelt werden.
 `anyOf { ... }`:: ODER-Verknüpfung der Bedingungen
 `not { ... }`:: Negation der nachfolgenden Bedingung
 
+== Secrets
+
+* Jenkins bringt eine Verwaltung für verschiedene Secrets mit
+** Benutzername und Passwort
+** Text-Secret
+** File-Secret
+** SSH-Username und privater Schlüssel
+** PKCS#12-Zertifikat
+* Diese werden verschlüsselt auf dem Build-Server gespeichert
+* und können in Pipelines verwendet werden
+
+[source]
+----
+withCredentials([string(credentialsId: 'deployment-token-production', variable: 'TOKEN')]) {
+    // some block
+}
+----
+
+== Ihr seid wieder dran
+
+. Im Branch `deployment01` ist Skript vorbereitet, welches das Deployment für euch regelt ;)
+. Erweitert die bestehende Pipeline um ein zweistufiges Deployment mit manueller Freigabe
+. Es existieren bereits zwei Secrets, die das jeweilige Deployment Token enthalten
+** `deployment-token-production` sichert das Deployment nach Production ab
+** `deployment-token-staging` sichert das Deployment nach Staging ab

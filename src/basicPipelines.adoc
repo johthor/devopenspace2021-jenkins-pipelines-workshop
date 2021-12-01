@@ -114,8 +114,9 @@ main --> agent3 : steuert
 * durch einen Webhook der bei neuen Commits im Repository aufgerufen wird
 * Zeitbasiert, vergleichbar mit Cron-Jobs
 * durch Aufruf einer Job-spezifischen URL
-* nachdem andere Jobs ausgeführt wurden
-* explizit durch Nutzer oder andere Jobs aufgerufen
+* nachdem andere Jobs ausgeführt wurden (passiv)
+* explizit durch andere Jobs aufgerufen (aktiv)
+* explizit durch Nutzer in der Oberfläche aufgerufen
 
 
 == Verschiedene Job-Typen
@@ -229,7 +230,7 @@ stage('Example') {
 ----
 
 
-== `steps`
+== `steps` Block
 
 * Steps bilden den kleinsten Baustein einer Pipeline und beschreiben was passieren soll.
 * Eine Pipeline setzt sich aus mehreren `steps` zusammen.
@@ -282,6 +283,8 @@ timeout(time: 3, unit: 'MINUTES') {
 === Weitere Steps aus Plugins
 
 //TODO withMaven ....
+
+Pipeline Syntax Generator
 
 
 == `agent` Block
@@ -438,6 +441,12 @@ http://34.65.117.123/[Jenkins Instanz für den Workshop]
 . Fügt den Nutzer https://github.com/devopenspace-jenkins-workshop[devopenspace-jenkins-workshop] als Contributor hinzu
 . Legt einen neuen Pipeline-Job an, der sich aus eurem Projekt definiert: Branch-Name `pipelines01`
 
+[.notes]
+--
+* Live-Demo Anlegen von eigenem Verzeichnis und Freestyle Job
+* Danach frei lassen
+--
+
 
 == Umgebungsvariablen
 
@@ -454,6 +463,8 @@ pipeline {
     ...
 }
 ----
+
+WARNING: Hier bitte keine Secrets eintragen!
 
 == Testergebnisse und Artefakte
 
@@ -509,10 +520,14 @@ image:pipeline-overview.png[]]
 
 image:blue_ocean_pipeline.png[]
 
+ifdef::backend-revealjs[=== !]
+
+image:classic_view.png[]
+
 == Benachrichtigungen
 
-.Jenkins bring von Haus aus einige Möglichkeiten mit Benachrichtigungen zu verschicken
-* `mailt to` E-Mail
+.Jenkins bietet einige Plugins, um Benachrichtigungen zu verschicken
+* `mail to` E-Mail
 * `slackSend` Slack
 
 [source]
@@ -525,3 +540,16 @@ post {
     }
 }
 ----
+
+== Ihr seid wieder dran
+
+. Legt eine neue Pipeline an, diesmal für den Branch `pipelines02`
+. Behebt die Violations im Companion-Projekt in einem neuen Branch
+. Legt eine Multibranch Pipeline für das Repository an, wählt hier `GitHub` als Quelle und "GitHub Access Token" als Credentials aus
+. Startet einen PR von eurem neuen Branch auf `pipelines02`
+
+[.notes]
+--
+* Möchte jemand seine Lösung vorstellen
+* Auf PR Tab eingehen
+--
