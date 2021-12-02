@@ -44,29 +44,4 @@ aus Sprache und Build-Tool.
 == Vorläufiger Inhalt
 
 . Begrüßung
-
 . Jenkins Historie
-
-. Build deployment
-
-. Eweiterbar durch Plugin
-
-. Legacy Jenkins Freeform jobs
-.. echo
-
-. Pipeline on the fly
-.. echo
-
-. Pipeline Grundlage
-
-. Build-Pipeline Maven
-
-. Jenkins Plugins übersicht
-
-. Multipipeline PR RESULT
-
-. Run a job in a pipeline Deploy-Pipeline Ansible? von Build aufrufen
-
-. Themen wie Fehlerbehandlung
-
-.  Parallelisierung

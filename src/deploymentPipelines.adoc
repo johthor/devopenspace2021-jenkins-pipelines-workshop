@@ -252,3 +252,257 @@ withCredentials([string(credentialsId: 'deployment-token-production', variable: 
 . Es existieren bereits zwei Secrets, die das jeweilige Deployment Token enthalten
 ** `deployment-token-production` sichert das Deployment nach Production ab
 ** `deployment-token-staging` sichert das Deployment nach Staging ab
+. Die Stage `Deployment - Production` soll erst ausgeführt werden, nachdem der Stand auf den aktuellen Release-Branch `release-0` gemerged wurde. 
+
+== Parametrisierte Pipelines
+
+* Die Parameter der Pipeline werden auf oberster Ebene im Block `parameters` beschrieben.
+* Die Parameter müssen beim Ausführen der Pipeline übergeben werden.
+* Während der Ausführund stehen die Parameter dann im Objekt `param` bereit.
+
+[source]
+----
+pipeline {
+    agent any
+    parameters {
+        string(name: 'PERSON', defaultValue: 'Mr Jenkins', description: 'Who should I say hello to?')
+    }
+    stages {
+        stage('Example') {
+            steps {
+                echo "Hello ${params.PERSON}"
+            }
+        }
+    }
+}
+----
+
+ifdef::backend-revealjs[=== !]
+
+.Es werden insgesamt fünf verschiedene Parametertypen unterstützt:
+* `string(name: 'PERSON', defaultValue: 'Mr Jenkins', description: '...')`
+* `text(name: 'BIOGRAPHY', defaultValue: '', description: '...')`
+* `booleanParam(name: 'TOGGLE', defaultValue: true, description: '...')`
+* `choice(name: 'CHOICE', choices: ['One', 'Two', 'Three'], description: '...')`
+* `password(name: 'PASSWORD', defaultValue: 'SECRET', description: '...')`
+
+== Automatisches Ausführen der Pipeline
+
+* Ähnlich wie die Nicht-Pipeline Jobs können Pipelines auf verschiedene Arten ausgeführt werden.
+* Dies wird durch einen `triggers` Block konfiguriert.
+* Das kann interessant sein für Nightly-Builds/Redeploys oder Cleanup-Jobs.
+* Mögliche Auslöser
+** Zeitgesteuert ausführen ähnlich Cron `cron('H */4 * * 1-5')`
+** Zeitgesteuert prüfen auf neue Commits `pollSCM('H */4 * * 1-5')`
+** Nachdem andere Jobs ausgeführt wurden. +
+   `upstream(upstreamProjects: 'job1,job2', threshold: hudson.model.Result.SUCCESS)`
+
+ifdef::backend-revealjs[=== !]
+
+[source]
+----
+pipeline {
+    agent any
+    triggers {
+        cron('0 0 * * *')
+    }
+    stages {
+        stage('Example') {
+            steps {
+                echo "Die Uhr hat zwölf geschlagen"
+            }
+        }
+    }
+}
+----
+
+=== Auslösung durch Webhook
+
+* Unter Settings > Webhooks folgende URL als Payload URL angeben +
+  http://34.65.117.123/github-webhook/
+* GitHub wird für jeden neuen Push ein Event an diese URL senden.
+* Jenkins kann daraufhin das zugehörige Repository auf neue Inhalte prüfen.
+
+== Auslagern des Deployments
+
+* Manchmal ergibt es Sinn bestimmte Aufgaben in eigene Pipelines auszulagern.
+* Hier z.B. das Deployment, um Redeployment zu ermöglichen.
+* Jenkins unterstützt mehrere Pipeline-Beschreibungen in einem Repository.
+* Dafür wird beim Anlegen einer Pipeline ein anderer Dateiname gewählt.
+* Ansonsten bieten sich hier alle anderen bisher kennen gelernten Konzepte an.
+
+=== Aufrufen eines anderen Jobs aus der Pipeline
+
+* Aus der Pipeline heraus können andere Jobs aufgerufen werden.
+
+[source]
+----
+build([
+    job: 'Tests/Deployment to Production',
+    parameters: [string(name: 'VERSION', value: 'v20211203')],
+    propagate: true,
+    wait: true
+])
+----
+
+== Und ihr seid wieder dran
+
+. In Branch `deployment02` wurde das Deployment in eine eigene Pipeline ausgelagert `Deployment.jenkinsfile`
+. Legt zwei neue eigenständige Pipelines an, die auf dieser Datei basieren.
++
+WARNING: Die Pipeline muss parametrisiert werden. Das sagt sie euch aber *;)*
+. Ruft die beiden neuen Pipelines aus der Build-Pipeline heraus auf.
+. Wie würdet ihr ein nächtliches Re-Deployment nach Staging konfigurieren?
+
+== Nested Stages
+
+* Neben der rein sequentiellen Ausführung von Stages erlaubt Jenkins noch Ausführungskonfigurationen.
+* Dadurch ist es möglich die Ausführung der Pipeline nahezu beliebig zu strukturieren.
+* Eine Stage kann immer nur einen der folgenden Blöcke enthalten
+** `steps`
+** `stages`
+** `parallel`
+** `matrix`
+
+image:flowdiagram.png[]
+
+=== Reihenschaltung mit `stages`
+
+Kennt ihr quasi schon auf Pipeline Ebenen, kann aber auch in beliebiger Tiefe vorkommen.
+
+[source.stretch]
+----
+stage('Sequential') {
+    stages {
+        stage('In Sequential 1') {
+            steps {
+                echo "In Sequential 1"
+            }
+        }
+        stage('In Sequential 2') {
+            steps {
+                echo "In Sequential 2"
+            }
+        }
+    }
+}
+----
+
+=== Parallelschaltung mit `parallel` 
+
+Die enthaltenen Stages werden Parallel ausgeführt.
+
+[source.stretch]
+----
+stage('Parallel Stage') {
+    failFast true
+    parallel {
+        stage('Branch A') {
+            steps {
+                echo "On Branch A"
+            }
+        }
+        stage('Branch B') {
+            steps {
+                echo "On Branch B"
+            }
+        }
+    }
+}
+----
+
+===  Matrixschaltung mit `matrix`
+
+* Setz sich zusammen aus einem `axes`-Block, in dem mehrere Konfigurationsparameter definiert werden können.
+* Einem `stages`-Block, der die Ausführung beschreibt
+* Und optional einem `excludes`-Block, der es ermöglicht bestimmt Kombinationen zu deaktivieren.
+
+[source.stretch]
+----
+stage('Matrix Stage') {
+    matrix {
+        axes {
+            axis {
+                name 'PLATFORM'
+                values 'linux', 'mac', 'windows'
+            }
+        }
+        stages {
+            stage('build') {
+                // ...
+            }
+            stage('test') {
+                // ...
+            }
+        }
+    }
+}
+----
+
+== Declarative vs. Skripted Pipelines
+
+[.lead]
+Ich habe euch angelogen.
+
+* Bisher haben wir uns ausschließlich mit Deklarativen Pipelines beschäftigt.
+* Dabei ist die bisher vorgestellt Pipeline DSL "nicht mehr als" eine embbeded DSL innerhalb eines Groovy-Skripts.
+* Die Skripted Pipelines bilden im Gegensatz dazu nur eine sehr dünne Schicht über dem reinen Groovy-Skript
+
+=== Vorteile und Nachteile Skripted Pipelines
+
+Vorteil:: Die Pipeline-Syntax gibt eine gewisse Struktur vor.
+Vorteil:: Bestimmte Funktionalitäten sind einfacher auszudrücken (Bedingte Ausführung)
+Voreil:: Das führt dazu, dass die Beschreibungen einfacher verstehbar und wartbar sind.
+Nachteil:: Du die Pipeline-Syntax ist weniger flexibel
+
+
+
+=== Vorteile und Nachteile Skripted Pipelines
+
+Vorteil:: Du kannst alles machen, was dir Groovy anbietet
+Nachteil:: Du kannst alles machen, was dir Groovy anbietet
+
+Die Flexibilität der Skripted Pipelines erhöht potentiell die Komplexität enorm.
+
+TIP: Nutzt nach Möglichkeit die deklarativen Pipelines
+
+=== Kleines Beispiel
+
+Ablaufkontrolle bzw. Ersatz für die nichtvorhandene `when`-Direktive.
+
+[source]
+----
+node {
+    stage('Example') {
+        if (env.BRANCH_NAME == 'master') {
+            echo 'I only execute on the master branch'
+        } else {
+            echo 'I execute elsewhere'
+        }
+    }
+}
+----
+
+=== Mischformen
+
+[source]
+pipeline {
+    agent any
+    stages {
+        stage('Scripted steps') {
+            steps {
+                script {
+                    def browsers = ['chrome', 'firefox']
+                    for (int i = 0; i < browsers.size(); ++i) {
+                        echo "Testing the ${browsers[i]} browser"
+                    }
+                }
+            }
+        }
+    }
+}
+
+== !
+
+[.stretch]
+Das wars.

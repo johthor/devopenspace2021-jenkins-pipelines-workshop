@@ -190,7 +190,7 @@ java -jar jenkins-external-tool-monitor.jar nightly-backup \
 [state=topic]
 == Pipelines
 
-Werden typischerweise in einer Datei `Jenkinsfile` im Repository-Root gepflegt.
+Werden typischerweise in einer Datei `Jenkinsfile` im Repository-Root gepflegt. https://www.jenkins.io/doc/book/pipeline/syntax/[Pipeline Syntax]
 
 [source%linenums]
 ----
@@ -282,9 +282,8 @@ timeout(time: 3, unit: 'MINUTES') {
 
 === Weitere Steps aus Plugins
 
-//TODO withMaven ....
-
-Pipeline Syntax Generator
+* Die jeweils zur Verfügung stehenden Steps hängen immer von den installierten Plugins ab.
+* http://34.65.117.123/pipeline-syntax/[Pipeline Syntax Generator] hilft dabei, die Steps richtig zu verwenden.
 
 
 == `agent` Block
