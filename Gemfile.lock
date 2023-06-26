@@ -4,16 +4,12 @@ GEM
     asciidoctor (2.0.18)
     asciidoctor-kroki (0.8.0)
       asciidoctor (~> 2.0)
-    asciidoctor-revealjs (4.1.0)
+    asciidoctor-revealjs (5.0.1)
       asciidoctor (>= 2.0.0, < 3.0.0)
-      concurrent-ruby (~> 1.0)
-      thread_safe (~> 0.3.5)
-    concurrent-ruby (1.1.9)
     slim (5.1.0)
       temple (~> 0.10.0)
       tilt (>= 2.0.6, < 2.2)
     temple (0.10.0)
-    thread_safe (0.3.6)
     tilt (2.1.0)
 
 PLATFORMS
